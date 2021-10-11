@@ -19,3 +19,18 @@ object WordCount {
     spark.stop()
   }
 }
+
+//sbt package
+
+//docker cp target/scala-2.11/scalasparkdf_2.11-0.1.jar gbspark:/home/hduser/
+
+//spark-submit \
+//  --class WordCount \
+//--master yarn \
+//  --deploy-mode cluster \
+//scalasparkdf_2.11-0.1.jar \
+//  /user/hduser/ppkm/ppkm_dataset.csv /user/hduser/scala-ppkm-df-out
+
+
+//hdfs dfs -ls /user/hduser/scala-ppkm-df-out
+//hdfs dfs -cat /user/hduser/scala-ppkm-df-out/*
