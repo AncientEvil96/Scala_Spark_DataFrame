@@ -13,6 +13,7 @@ object WordCount {
   def main(args: Array[String]): Unit = {
     val input = args(0)
     val output = args(1)
+    val stop_word = args(2).split(',')
 
     val spark = SparkSession.builder().appName("Test DataFrame").getOrCreate()
     import spark.sqlContext.implicits._
@@ -20,12 +21,19 @@ object WordCount {
     spark.read.option("header", "true").csv(input)
       .select(concat_ws(" ", $"class", $"comment") as "docs")
       .select(split($"docs", "\\s") as "words")
-      .map(words => words.toString().trim().replaceAll("[^a-zA-Z ]", "").toLowerCase())
       .select(explode($"words") as "word")
-      .groupBy($"word").count()
-      .sort($"count".desc)
+      .groupBy($"word").count() //группировка
       .select("count", "word")
-      .write.mode("overwrite").csv(output)
+      // убрали знаки припинания + все в нижний регистр
+      .withColumn("word_n", regexp_replace(lower($"word"), "[^a-zA-Z ]", ""))
+      .select("count", "word_n") //почему то без этого дальше не хотело идти
+      .filter("word_n != \"\"") //отфильтровали пустые строки
+      .filter(!$"word_n".isin(stop_word: _*)) //отфильтровали стоп слова кторые идут через запятую
+      .sort($"count".desc) //сортировка по количеству
+      .repartition(1) //сделаем 1 партицию вместо 200
+      .write.mode("overwrite")
+      .option("sep", ";") // поменяли раздилитель
+      .csv(output)
     spark.stop()
   }
 }
@@ -41,3 +49,4 @@ object WordCount {
 
 //hdfs dfs -ls /user/hduser/ppkm-df-out
 //hdfs dfs -cat /user/hduser/ppkm-df-out/*
+//hdfs dfs -rm -r -skipTrash ppkm-df-out
