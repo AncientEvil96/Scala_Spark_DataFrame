@@ -20,17 +20,19 @@ object WordCount {
 
     spark.read.option("header", "true").csv(input)
       .select(concat_ws(" ", $"class", $"comment") as "docs")
-      .select(split($"docs", "\\s") as "words")
+      .select(split(regexp_replace(lower($"docs"), "[^(\\w\\s)]", ""), "\\s") as "words")
+//      .select(split($"docs_n", "\\s") as "words")
       .select(explode($"words") as "word")
       .groupBy($"word").count() //группировка
       .select("count", "word")
       // убрали знаки припинания + все в нижний регистр
-      .withColumn("word_n", regexp_replace(lower($"word"), "[^a-zA-Z ]", ""))
+//      .withColumn("word_n", regexp_replace(lower($"word"), "[^a-zA-Z ]", ""))
 //      .select(regexp_replace(lower($"word"), "[^a-zA-Z ]", "") as "word")
-      .select("count", "word_n") //почему то без этого дальше не хотело идти
-      .withColumnRenamed("word_n","word") //переименовали колонку для удобства
-      .filter("word != \"\"") //отфильтровали пустые строки
-      .filter(!$"word".isin(stop_word: _*)) //отфильтровали стоп слова кторые идут через запятую
+//      .select("count", "word_n") //почему то без этого дальше не хотело идти
+//      .withColumnRenamed("word_n","word") //переименовали колонку для удобства
+//      .filter("word != \"\"") //отфильтровали пустые строки
+//      .filter(!$"word".isin(stop_word: _*)) //отфильтровали стоп слова кторые идут через запятую
+      .filter(not($"word" === "") and not($"word".isin(stop_word: _*))) //отфильтровали все что не нужно
       .sort($"count".desc) //сортировка по количеству
       .repartition(1) //сделаем 1 партицию вместо 200
       .write.mode("overwrite")
