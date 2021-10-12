@@ -26,9 +26,11 @@ object WordCount {
       .select("count", "word")
       // убрали знаки припинания + все в нижний регистр
       .withColumn("word_n", regexp_replace(lower($"word"), "[^a-zA-Z ]", ""))
+//      .select(regexp_replace(lower($"word"), "[^a-zA-Z ]", "") as "word")
       .select("count", "word_n") //почему то без этого дальше не хотело идти
-      .filter("word_n != \"\"") //отфильтровали пустые строки
-      .filter(!$"word_n".isin(stop_word: _*)) //отфильтровали стоп слова кторые идут через запятую
+      .withColumnRenamed("word_n","word") //переименовали колонку для удобства
+      .filter("word != \"\"") //отфильтровали пустые строки
+      .filter(!$"word".isin(stop_word: _*)) //отфильтровали стоп слова кторые идут через запятую
       .sort($"count".desc) //сортировка по количеству
       .repartition(1) //сделаем 1 партицию вместо 200
       .write.mode("overwrite")
